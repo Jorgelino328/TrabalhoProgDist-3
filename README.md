@@ -150,6 +150,34 @@ Após todos os serviços iniciarem:
 - **Startup manual**: 5-8 minutos (aguardando entre serviços)
 - **Primeiro startup**: +2-3 minutos (download de dependências Maven)
 
+### 🎯 **Validação Final do Sistema**
+
+Após iniciar todos os serviços, execute os seguintes comandos para validação completa:
+
+```bash
+# 1. Verificar se todos os serviços estão rodando
+./scripts/check-health.sh
+
+# 2. Verificar registro no Eureka (deve mostrar 6 serviços)
+curl -s http://localhost:8761/eureka/apps | grep -o '<app>' | wc -l
+
+# 3. Teste funcional rápido de cada serviço
+curl "http://localhost:8082/ai/generate/teste"                    # AI Service
+curl "http://localhost:8081/mcp/status"                          # MCP Service  
+curl -X POST http://localhost:8083/validate \                    # Serverless
+  -H "Content-Type: application/json" \
+  -d '{"data": "test", "transformation_type": "uppercase"}'
+
+# 4. Executar testes JMeter (opcional)
+jmeter -t jmeter/sistema-microservicos-teste-carga.jmx
+```
+
+**✅ Sistema funcionando corretamente quando:**
+- Todos os 7 serviços retornam status UP/SUCCESS
+- Eureka dashboard mostra 6 serviços registrados  
+- Testes funcionais retornam respostas válidas
+- JMeter testes passam sem falhas de assertion
+
 ## Endpoints da API
 
 ### Acesso Direto aos Microserviços
@@ -217,10 +245,16 @@ O projeto inclui um plano de teste JMeter completo em `jmeter/sistema-microservi
 
 #### Endpoints Testados:
 - **AI Service**: `localhost:8082/ai/generate/tecnologia`
-- **MCP Service**: `localhost:8081/mcp/status`
-- **Serverless Service**: `localhost:8083/validate`
+- **MCP Service**: `localhost:8081/mcp/status` (com validação de sucesso)
+- **Serverless Service**: `localhost:8083/validate` (com transformação de dados)
 - **Gateway Health**: `localhost:8080/actuator/health`
 - **AI Custom Prompt**: `localhost:8082/ai/prompt`
+
+**Validações Incluídas:**
+- ✅ Verificação de respostas de erro/fallback para detectar falhas de lógica de negócio
+- ✅ Validação de status de sucesso nos serviços MCP e AI
+- ✅ Teste de transformação de dados no serviço Serverless
+- ✅ Health checks do API Gateway
 
 ### Executando Testes JMeter
 
@@ -390,6 +424,18 @@ echo "4. MCP Server:" && curl -s http://localhost:3000/health | grep -o '"status
 echo "5. Microservice MCP:" && curl -s http://localhost:8081/mcp/health | grep -o '"status":"[^"]*"' && \
 echo "6. Microservice AI:" && curl -s http://localhost:8082/ai/health | grep -o '"status":"[^"]*"' && \
 echo "7. Microservice Serverless:" && curl -s http://localhost:8083/actuator/health | grep -o '"status":"[^"]*"'
+
+# OU usar o script automatizado
+./scripts/check-health.sh
+```
+
+### 🛑 **Parando os Serviços:**
+```bash
+# Parar todos os serviços
+./scripts/stop-services.sh
+
+# OU parar manualmente
+pkill -f "spring-boot:run"
 ```
 
 ### Logs dos Serviços:

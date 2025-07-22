@@ -56,6 +56,6 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}🎯 Services shutdown complete!${NC}"
+echo -e "${GREEN}Services shutdown complete!${NC}"
 echo -e "${YELLOW}You can now safely restart services with:${NC}"
 echo -e "  ./scripts/start-services.sh"

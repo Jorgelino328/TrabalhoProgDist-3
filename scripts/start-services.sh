@@ -94,7 +94,7 @@ echo -e "${YELLOW}7. Starting Microservice Serverless...${NC}"
 echo -e "${YELLOW}Waiting for all services to start and register...${NC}"
 sleep 30
 
-echo -e "${GREEN}🎉 All services started!${NC}"
+echo -e "${GREEN}All services started!${NC}"
 echo ""
 echo -e "${YELLOW}Service URLs:${NC}"
 echo -e "  Eureka Dashboard: http://localhost:8761"
