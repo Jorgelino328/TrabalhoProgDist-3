@@ -1,0 +1,33 @@
+# Maven build files
+target/
+
+# Java compiled files
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.metadata
+.settings/
+.project
+.classpath
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+
+# Docker volumes
+grafana-data/
+prometheus-data/
+
+# JMeter test results
+*.jtl
+jmeter.log
+
+# OS files
+.DS_Store
+Thumbs.db
