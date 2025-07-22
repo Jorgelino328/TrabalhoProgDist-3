@@ -6,8 +6,8 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.ChatResponse;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -34,10 +34,11 @@ public class AiService {
                     .build();
             
             Prompt prompt = new Prompt(new UserMessage(request.getPrompt()), options);
-            ChatResponse response = chatClient.call(prompt);
+            ChatResponse response = chatClient.prompt(prompt).call().chatResponse();
             
             String aiResponse = response.getResult().getOutput().getContent();
-            Integer tokensUsed = response.getMetadata().getUsage().getTotalTokens();
+            Long tokensUsedLong = response.getMetadata().getUsage().getTotalTokens();
+            Integer tokensUsed = tokensUsedLong != null ? tokensUsedLong.intValue() : 0;
             
             logger.info("AI prompt processed successfully. Tokens used: {}", tokensUsed);
             return new AiResponse(aiResponse, options.getModel(), tokensUsed, "SUCCESS");
