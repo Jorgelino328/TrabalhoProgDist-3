@@ -42,6 +42,11 @@ public class DataTransformFunction implements Function<DataTransformRequest, Ser
         String transformationType = request.getTransformationType();
         Object data = request.getData();
         
+        // Check for null transformation type
+        if (transformationType == null) {
+            throw new IllegalArgumentException("Transformation type cannot be null");
+        }
+        
         switch (transformationType.toLowerCase()) {
             case "uppercase":
                 return transformToUpperCase(data);

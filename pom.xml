@@ -28,6 +28,7 @@
         <module>eureka-server</module>
         <module>config-server</module>
         <module>api-gateway</module>
+        <module>mcp-server</module>
         <module>microservice-mcp</module>
         <module>microservice-ai</module>
         <module>microservice-serverless</module>

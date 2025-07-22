@@ -1,0 +1,15 @@
+{
+  "name": "trabalhoprogdist-3",
+  "version": "1.0.0",
+  "description": "## Visão Geral Este é um sistema abrangente de microserviços distribuídos construído com **Spring Boot** e **Spring Cloud** que integra capacidades de IA. O sistema segue a metodologia do **Manifesto Twelve-Factor** e implementa **padrões de resiliência** para tolerância a falhas e **observabilidade** abrangente.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/server-filesystem": "^2025.7.1"
+  }
+}

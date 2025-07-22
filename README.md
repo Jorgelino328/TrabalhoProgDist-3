@@ -32,9 +32,10 @@ Este é um sistema abrangente de microserviços distribuídos construído com **
 - **Eureka Server** (Porta 8761): Descoberta e registro de serviços
 - **Config Server** (Porta 8888): Gerenciamento centralizado de configuração
 - **API Gateway** (Porta 8080): Ponto de entrada com roteamento e circuit breakers
+- **MCP Server** (Porta 3000): Servidor MCP implementado com Spring Boot
 
 ### Microserviços
-1. **Microservice MCP** (Porta 8081): Interface com servidores MCP externos
+1. **Microservice MCP** (Porta 8081): Interface com o MCP Server usando padrões de resiliência
 2. **Microservice AI** (Porta 8082): Integração com API OpenAI usando Spring AI
 3. **Microservice Serverless** (Porta 8083): Implementa funções serverless para transformação de dados
 
@@ -45,47 +46,109 @@ Este é um sistema abrangente de microserviços distribuídos construído com **
 
 ## Configuração e Execução
 
-### 1. Configuração da Chave OpenAI
+### Passo 1: Configuração da Chave OpenAI
 ```bash
-# Copie o arquivo de exemplo
+# Copie o arquivo de exemplo (se não existir)
 cp .env.example .env
 
 # Edite o arquivo .env e adicione sua chave OpenAI
 OPENAI_API_KEY=sua-chave-openai-aqui
 ```
+⚠️ **IMPORTANTE:** O serviço AI não funcionará sem uma chave OpenAI válida no arquivo `.env`
 
-### 2. Compilação do Projeto
+### Passo 2: Compilação do Projeto
 ```bash
 # Compilar todos os microserviços
 mvn clean install -DskipTests
 ```
+📝 **Nota:** Pode levar alguns minutos na primeira execução para baixar dependências
 
-### 3. Iniciar Infraestrutura de Observabilidade
+### Passo 3: Iniciar Infraestrutura de Observabilidade (Opcional)
 ```bash
 # Iniciar Prometheus, Grafana e Zipkin
 docker-compose up -d
 ```
+📊 **Observabilidade:** Este passo é opcional mas recomendado para monitoramento completo
 
-### 4. Iniciar Microserviços (em ordem)
+### Passo 4: Iniciar Microserviços
+
+#### 🚀 Opção A: Startup Automático (Recomendado)
 ```bash
-# Terminal 1 - Eureka Server
-cd eureka-server && mvn spring-boot:run
-
-# Terminal 2 - Config Server
-cd config-server && mvn spring-boot:run
-
-# Terminal 3 - API Gateway
-cd api-gateway && mvn spring-boot:run
-
-# Terminal 4 - MCP Service
-cd microservice-mcp && mvn spring-boot:run
-
-# Terminal 5 - AI Service
-cd microservice-ai && mvn spring-boot:run
-
-# Terminal 6 - Serverless Service
-cd microservice-serverless && mvn spring-boot:run
+# Script que inicia todos os serviços automaticamente
+./scripts/start-services.sh
 ```
+⏱️ **Tempo:** ~3-5 minutos para todos os serviços estarem funcionais
+
+#### 🔧 Opção B: Startup Manual (Para Desenvolvimento)
+**IMPORTANTE: Iniciar na ordem exata listada abaixo**
+
+```bash
+# Terminal 1 - Eureka Server (Service Discovery) - DEVE SER O PRIMEIRO
+cd eureka-server
+mvn spring-boot:run
+# ✅ Aguardar: http://localhost:8761 acessível
+
+# Terminal 2 - Config Server (Centralized Configuration) - SEGUNDO
+cd config-server
+mvn spring-boot:run
+# ✅ Aguardar: http://localhost:8888/actuator/health retorna UP
+
+# Terminal 3 - MCP Server (Model Context Protocol Server)
+cd mcp-server
+mvn spring-boot:run
+# ✅ Aguardar: http://localhost:3000/health retorna UP
+
+# Terminal 4 - API Gateway (Entry Point)
+cd api-gateway
+mvn spring-boot:run
+# ✅ Aguardar: http://localhost:8080/actuator/health retorna UP
+
+# Terminal 5 - MCP Service (Interface with MCP Server)
+cd microservice-mcp
+mvn spring-boot:run
+# ✅ Aguardar: http://localhost:8081/mcp/health retorna SUCCESS
+
+# Terminal 6 - AI Service (com variáveis de ambiente) - REQUER .env
+cd /home/jorgelino/TrabalhoProgDist-3
+export $(cat .env | grep -v ^# | xargs)
+cd microservice-ai
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+# ✅ Aguardar: http://localhost:8082/ai/health retorna SUCCESS
+
+# Terminal 7 - Serverless Service (Functions)
+cd microservice-serverless
+mvn spring-boot:run
+# ✅ Aguardar: http://localhost:8083/actuator/health retorna UP
+```
+
+#### ⚡ Dicas para Startup Manual:
+- **Ordem Crítica:** Eureka → Config Server → Demais Serviços
+- **Aguarde cada serviço:** Não inicie o próximo até o anterior estar UP
+- **Tempo entre serviços:** ~30-60 segundos entre cada startup
+- **Variáveis de ambiente:** Apenas o AI Service precisa do `.env`
+
+### Passo 5: Verificação do Sistema
+
+#### 📋 **Checklist de Startup (Manual)**
+Para startup manual, siga esta ordem e aguarde cada passo:
+
+1. ✅ **Eureka Server** - http://localhost:8761 (deve carregar a página)
+2. ✅ **Config Server** - http://localhost:8888/actuator/health retorna `{"status":"UP"}`
+3. ✅ **MCP Server** - http://localhost:3000/health retorna `{"status":"UP"}`
+4. ✅ **API Gateway** - http://localhost:8080/actuator/health retorna `{"status":"UP"}`
+5. ✅ **MCP Service** - http://localhost:8081/mcp/health retorna `{"status":"SUCCESS"}`
+6. ✅ **AI Service** - http://localhost:8082/ai/health retorna `{"status":"SUCCESS"}`
+7. ✅ **Serverless Service** - http://localhost:8083/actuator/health retorna `{"status":"UP"}`
+
+#### 🔍 **Verificação Final**
+Após todos os serviços iniciarem:
+- **Eureka Dashboard**: http://localhost:8761 (deve mostrar 6 serviços registrados)
+- **Teste funcional**: Executar o comando de teste completo (veja seção Troubleshooting)
+
+#### ⏱️ **Tempos Esperados**
+- **Startup automático**: 3-5 minutos total
+- **Startup manual**: 5-8 minutos (aguardando entre serviços)
+- **Primeiro startup**: +2-3 minutos (download de dependências Maven)
 
 ## Endpoints da API
 
@@ -102,8 +165,27 @@ cd microservice-serverless && mvn spring-boot:run
 - `GET /mcp/health` - Health check do serviço MCP
 
 #### Serviço Serverless (Porta 8083)
-- `POST /validate` - Validar dados
-- `GET /health` - Health check do serviço Serverless
+- `POST /validate` - Executar função de transformação de dados
+- `GET /actuator/health` - Health check do serviço Serverless
+
+**Exemplo de uso do /validate:**
+```bash
+curl -X POST http://localhost:8083/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": "hello world",
+    "transformation_type": "uppercase",
+    "parameters": {}
+  }'
+```
+
+**Tipos de transformação suportados:**
+- `uppercase` - Converter texto para maiúsculas
+- `lowercase` - Converter texto para minúsculas  
+- `reverse` - Reverter ordem dos elementos
+- `sort` - Ordenar elementos
+- `filter` - Filtrar elementos
+- `aggregate` - Agregar dados
 
 #### API Gateway (Porta 8080)
 - `GET /actuator/health` - Health check do Gateway
@@ -235,11 +317,55 @@ O sistema implementa todos os 12 fatores:
 
 ## Troubleshooting
 
-### Problemas Comuns:
-1. **Serviços não iniciam**: Verificar se Eureka e Config Server iniciaram primeiro
-2. **AI usando fallback**: Verificar chave OpenAI no arquivo `.env`
-3. **Portas ocupadas**: Verificar se portas 8080-8083, 8761, 8888 estão livres
-4. **JMeter falha**: Certificar que todos os serviços estão rodando
+### Problemas de Startup Comuns:
+
+#### 🔴 **Erro: "Port already in use"**
+```bash
+# Verificar quais portas estão ocupadas
+netstat -tlnp | grep -E "(8080|8081|8082|8083|8761|8888|3000)"
+
+# Parar processos Java que podem estar rodando
+pkill -f "spring-boot:run"
+```
+
+#### 🔴 **Erro: "Connection refused" ou serviços não se registram**
+- **Causa:** Eureka Server não iniciou primeiro
+- **Solução:** Sempre iniciar Eureka Server primeiro e aguardar estar UP
+
+#### 🔴 **Erro: AI Service retorna fallback responses**
+```bash
+# Verificar se .env existe e tem chave OpenAI
+cat .env | grep OPENAI_API_KEY
+
+# Verificar se variáveis foram carregadas
+echo $OPENAI_API_KEY
+```
+
+#### 🔴 **Erro: "Config Server not available"**
+- **Causa:** Config Server não iniciou antes dos outros serviços
+- **Solução:** Iniciar Config Server em segundo lugar (após Eureka)
+
+### Problemas Funcionais:
+
+#### 🟡 **Serviços registrados mas não respondem**
+```bash
+# Verificar se todas as portas estão respondendo
+curl -f http://localhost:8761/actuator/health  # Eureka
+curl -f http://localhost:8888/actuator/health  # Config Server
+curl -f http://localhost:8080/actuator/health  # API Gateway
+curl -f http://localhost:3000/health           # MCP Server
+curl -f http://localhost:8081/mcp/health       # MCP Service
+curl -f http://localhost:8082/ai/health        # AI Service
+curl -f http://localhost:8083/actuator/health  # Serverless Service
+```
+
+#### 🟡 **JMeter testes falhando**
+- **Verificar:** Todos os serviços estão UP antes de executar testes
+- **Aguardar:** 2-3 minutos após último serviço iniciar
+
+### Comandos de Diagnóstico:
+
+#### ✅ **Verificação Rápida do Sistema Completo**
 
 ### Verificação do Sistema:
 ```bash
@@ -249,11 +375,21 @@ curl http://localhost:8761
 # Testar endpoints dos microserviços diretamente
 curl http://localhost:8081/mcp/status
 curl http://localhost:8082/ai/health
-curl http://localhost:8083/health
+curl http://localhost:8083/actuator/health
 curl http://localhost:8080/actuator/health
 
 # Teste rápido da funcionalidade de IA
 curl "http://localhost:8082/ai/generate/teste"
+
+# Teste completo de saúde de todos os serviços (one-liner)
+echo "=== TESTING ALL SERVICES ===" && \
+echo "1. Eureka:" && curl -s http://localhost:8761/actuator/health | grep -o '"status":"[^"]*"' && \
+echo "2. Config Server:" && curl -s http://localhost:8888/actuator/health | grep -o '"status":"[^"]*"' && \
+echo "3. API Gateway:" && curl -s http://localhost:8080/actuator/health | grep -o '"status":"[^"]*"' && \
+echo "4. MCP Server:" && curl -s http://localhost:3000/health | grep -o '"status":"[^"]*"' && \
+echo "5. Microservice MCP:" && curl -s http://localhost:8081/mcp/health | grep -o '"status":"[^"]*"' && \
+echo "6. Microservice AI:" && curl -s http://localhost:8082/ai/health | grep -o '"status":"[^"]*"' && \
+echo "7. Microservice Serverless:" && curl -s http://localhost:8083/actuator/health | grep -o '"status":"[^"]*"'
 ```
 
 ### Logs dos Serviços:
